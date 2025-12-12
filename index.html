@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Southern Sands – Pricing Engine</title>
+  <style>
+    * { box-sizing: border-box; font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    body { background:#f5f5f5; margin:0; padding:2rem; display:flex; justify-content:center; }
+    .card { background:#fff; border-radius:16px; padding:1.75rem 2rem; max-width:1100px; width:100%; box-shadow:0 10px 30px rgba(0,0,0,0.06); }
+    h1 { margin:0 0 .25rem; font-size:1.7rem; }
+    .subtitle { margin:0 0 1rem; color:#555; font-size:.95rem; }
+
+    .tabs { display:inline-flex; border-radius:999px; background:#edf1f7; padding:.2rem; margin:0 0 1.5rem; flex-wrap:wrap; gap:.2rem; }
+    .tab-btn { border:none; border-radius:999px; padding:.5rem 1.2rem; font-size:.9rem; font-weight:600; cursor:pointer; background:transparent; color:#555; white-space:nowrap; }
+    .tab-btn.active { background:#fff; color:#0077ff; box-shadow:0 3px 10px rgba(0,0,0,0.08); }
+
+    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem 1.5rem; margin-bottom:1.25rem; }
+    label { display:block; font-size:.8rem; margin:0 0 .25rem; font-weight:600; color:#333; }
+    input[type="number"], input[type="password"], select {
+      width:100%; padding:.5rem .6rem; border-radius:8px; border:1px solid #ccc; font-size:.9rem;
+    }
+    input[type="number"]:focus, input[type="password"]:focus, select:focus {
+      outline:none; border-color:#0077ff; box-shadow:0 0 0 1px rgba(0,119,255,0.15);
+    }
+
+    .button-row { display:flex; gap:.75rem; margin:.75rem 0 1.25rem; flex-wrap:wrap; }
+    button.primary {
+      padding:.55rem 1.1rem; border-radius:999px; border:none; font-size:.95rem; font-weight:600;
+      cursor:pointer; background:#0077ff; color:#fff; box-shadow:0 4px 12px rgba(0,119,255,0.35);
+    }
+    button.secondary {
+      padding:.4rem .9rem; border-radius:999px; border:1px solid #cbd5e1; font-size:.8rem; cursor:pointer;
+      background:#fff; color:#1f2933;
+    }
+
+    .results { padding:1rem 1.25rem; border-radius:12px; background:#f8fafc; border:1px solid #e3e8ef; font-size:.95rem; margin-top:.5rem; }
+    .results h2 { margin:0 0 .75rem; font-size:1rem; }
+    .result-row { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:.35rem; }
+    .result-row span:first-child { color:#555; }
+    .result-row span:last-child { font-weight:700; }
+    .result-row.highlight span:last-child { font-size:1.1rem; }
+
+    .quote-row {
+      margin-top:.6rem; padding-top:.45rem; border-top:1px dashed #d4dbe5;
+      display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap;
+      font-size:.85rem;
+    }
+    .quote-row span { color:#374151; }
+
+    .section-title { font-size:.95rem; font-weight:800; margin:.8rem 0 .4rem; color:#333; }
+    .checkbox-row { display:flex; align-items:center; gap:.4rem; margin-top:.5rem; flex-wrap:wrap; }
+    .checkbox-row input[type="checkbox"] { width:16px; height:16px; }
+
+    .checkbox-group { display:flex; flex-wrap:wrap; gap:.75rem 1.5rem; margin-bottom:1rem; }
+    .checkbox-item { display:flex; align-items:center; gap:.4rem; font-size:.85rem; }
+
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+
+    details.admin { margin:.75rem 0 1.5rem; border-radius:12px; border:1px solid #e3e8ef; padding:.75rem 1rem; background:#f9fafb; }
+    details.admin summary { cursor:pointer; font-weight:700; font-size:.9rem; outline:none; list-style:none; }
+    details.admin summary::-webkit-details-marker { display:none; }
+    .summary-label { margin-left:.25rem; color:#555; font-weight:600; }
+    .error { color:#b00020; font-size:.85rem; margin-bottom:.5rem; display:none; }
+    #adminLoginError { color:#b00020; font-size:.8rem; margin-top:.25rem; }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>Southern Sands Pricing Engine</h1>
+    <div class="subtitle">Screen printing, embroidery, transfers &amp; sublimation.</div>
+
+    <div id="adminLogin">
+      <div class="section-title">Admin Login</div>
+      <div class="grid">
+        <div>
+          <label for="adminPassword">Admin Password</label>
+          <input type="password" id="adminPassword" />
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button type="button" class="primary" onclick="unlockAdmin()">Unlock Admin Settings</button>
+        </div>
+      </div>
+      <div id="adminLoginError"></div>
+    </div>
+
+    <details class="admin" id="adminPanel" style="display:none;">
+      <summary>Admin Settings <span class="summary-label">(Adjust, then recalc)</span></summary>
+
+      <div class="section-title">Global</div>
+      <div class="grid">
+        <div>
+          <label for="adminProfitMargin">Decoration Profit Margin (%)</label>
+          <input type="number" id="adminProfitMargin" min="0" max="80" step="1" value="40" />
+        </div>
+        <div>
+          <label for="adminGarmentMargin">Garment Margin on Blank (%)</label>
+          <input type="number" id="adminGarmentMargin" min="0" max="50" step="0.5" value="5" />
+        </div>
+        <div>
+          <label for="adminEsaAmount">Enhanced Service Accommodation per Garment ($)</label>
+          <input type="number" id="adminEsaAmount" min="0" step="0.01" value="0.50" />
+        </div>
+      </div>
+
+      <div class="section-title">Screen Printing – Legacy Low-Qty Boost</div>
+      <div class="grid">
+        <div>
+          <label for="adminSpLegacyOn">Enable legacy boost?</label>
+          <select id="adminSpLegacyOn">
+            <option value="on" selected>On (default)</option>
+            <option value="off">Off</option>
+          </select>
+        </div>
+        <div>
+          <label for="adminSpLegacyMaxQty">Applies when qty ≤</label>
+          <input type="number" id="adminSpLegacyMaxQty" min="1" step="1" value="24" />
+        </div>
+        <div>
+          <label for="adminSpLegacyMinDecoRetail">Min decoration retail per garment ($)</label>
+          <input type="number" id="adminSpLegacyMinDecoRetail" min="0" step="0.01" value="7.25" />
+        </div>
+      </div>
+
+      <div class="section-title">Screen Printing</div>
+      <div class="grid">
+        <div>
+          <label for="adminScreenMinQty">Minimum Quantity</label>
+          <input type="number" id="adminScreenMinQty" min="1" step="1" value="12" />
+        </div>
+        <div>
+          <label for="adminSpPressSetup">Press Setup Fee per Job ($)</label>
+          <input type="number" id="adminSpPressSetup" min="0" step="0.01" value="20" />
+        </div>
+        <div>
+          <label for="adminSpScreenFee">Screen Fee per Screen ($)</label>
+          <input type="number" id="adminSpScreenFee" min="0" step="0.01" value="18" />
+        </div>
+        <div>
+          <label for="adminSpScreenSetupLabor">Screen Setup Labor per Screen ($)</label>
+          <input type="number" id="adminSpScreenSetupLabor" min="0" step="0.01" value="2" />
+        </div>
+        <div>
+          <label for="adminSpBaseInk">Base Ink per Garment ($)</label>
+          <input type="number" id="adminSpBaseInk" min="0" step="0.01" value="0.15" />
+        </div>
+        <div>
+          <label for="adminSpColorInk">Ink per Color per Garment ($)</label>
+          <input type="number" id="adminSpColorInk" min="0" step="0.01" value="0.10" />
+        </div>
+        <div>
+          <label for="adminSpBaseLabor">Base Labor per Garment ($)</label>
+          <input type="number" id="adminSpBaseLabor" min="0" step="0.01" value="0.15" />
+        </div>
+        <div>
+          <label for="adminSpPerColorLabor">Labor per Color per Garment ($)</label>
+          <input type="number" id="adminSpPerColorLabor" min="0" step="0.01" value="0.06" />
+        </div>
+        <div>
+          <label for="adminSpFlashLabor">Labor per Flash ($)</label>
+          <input type="number" id="adminSpFlashLabor" min="0" step="0.01" value="0.05" />
+        </div>
+        <div>
+          <label for="adminSpOperatorHr">Operator Labor per Hour ($)</label>
+          <input type="number" id="adminSpOperatorHr" min="0" step="0.01" value="27" />
+        </div>
+        <div>
+          <label for="adminSpOverheadHr">Press Overhead per Hour ($)</label>
+          <input type="number" id="adminSpOverheadHr" min="0" step="0.01" value="35" />
+        </div>
+        <div>
+          <label for="adminSpPrintsHr">Prints per Hour</label>
+          <input type="number" id="adminSpPrintsHr" min="1" step="1" value="325" />
+        </div>
+        <div>
+          <label for="adminSpSpoilage">Spoilage (%)</label>
+          <input type="number" id="adminSpSpoilage" min="0" step="0.1" value="2" />
+        </div>
+        <div>
+          <label for="adminSpUnderbasePerShirt">Underbase Cost per Shirt ($)</label>
+          <input type="number" id="adminSpUnderbasePerShirt" min="0" step="0.01" value="0.08" />
+        </div>
+        <div>
+          <label for="adminSpPocketPalletFee">Pocket Pallet Change Fee per Job ($)</label>
+          <input type="number" id="adminSpPocketPalletFee" min="0" step="0.01" value="10" />
+        </div>
+        <div>
+          <label for="adminSpSleevePalletFee">Sleeve Pallet Change Fee per Job ($)</label>
+          <input type="number" id="adminSpSleevePalletFee" min="0" step="0.01" value="10" />
+        </div>
+        <div>
+          <label for="adminSpYouthPalletFee">Youth Pallet Change Fee per Job ($)</label>
+          <input type="number" id="adminSpYouthPalletFee" min="0" step="0.01" value="10" />
+        </div>
+        <div>
+          <label for="adminSpMulti2Fee">Extra Fee for 2 Specialty Pallet Types ($)</label>
+          <input type="number" id="adminSpMulti2Fee" min="-50" step="0.01" value="10" />
+        </div>
+        <div>
+          <label for="adminSpMulti3Fee">Extra Fee for 3+ Specialty Pallet Types ($)</label>
+          <input type="number" id="adminSpMulti3Fee" min="-50" step="0.01" value="20" />
+        </div>
+      </div>
+
+      <div class="section-title">Embroidery</div>
+      <div class="grid">
+        <div>
+          <label for="adminEmbMinRetail">Minimum Retail per Garment ($)</label>
+          <input type="number" id="adminEmbMinRetail" min="0" step="0.01" value="10" />
+        </div>
+        <div>
+          <label for="adminEmbSpoilage">Spoilage (%)</label>
+          <input type="number" id="adminEmbSpoilage" min="0" step="0.1" value="2" />
+        </div>
+        <div>
+          <label for="adminEmbLaborHr">Labor per Hour ($)</label>
+          <input type="number" id="adminEmbLaborHr" min="0" step="0.01" value="15" />
+        </div>
+        <div>
+          <label for="adminEmbOverheadHr">Overhead per Hour ($)</label>
+          <input type="number" id="adminEmbOverheadHr" min="0" step="0.01" value="20" />
+        </div>
+      </div>
+
+      <div class="section-title">Embroidery Difficulty Add-Ons (as %)</div>
+      <div class="grid">
+        <div><label for="adminEmbDiffShirt">Shirt / Polo</label><input type="number" id="adminEmbDiffShirt" min="0" step="0.01" value="0" /></div>
+        <div><label for="adminEmbDiffSweater">Hoodie / Sweater</label><input type="number" id="adminEmbDiffSweater" min="0" step="0.01" value="0" /></div>
+        <div><label for="adminEmbDiffHat">Hat</label><input type="number" id="adminEmbDiffHat" min="0" step="0.01" value="0.10" /></div>
+        <div><label for="adminEmbDiffBeanie">Beanie</label><input type="number" id="adminEmbDiffBeanie" min="0" step="0.01" value="0.05" /></div>
+      </div>
+
+      <div class="section-title">Heat Transfers</div>
+      <div class="grid">
+        <div><label for="adminHtMinRetail">Minimum Retail per Garment ($)</label><input type="number" id="adminHtMinRetail" min="0" step="0.01" value="9" /></div>
+        <div><label for="adminHtSpoilage">Spoilage (%)</label><input type="number" id="adminHtSpoilage" min="0" step="0.1" value="1.5" /></div>
+        <div><label for="adminHtLaborHr">Labor per Hour ($)</label><input type="number" id="adminHtLaborHr" min="0" step="0.01" value="16" /></div>
+        <div><label for="adminHtOverheadHr">Overhead per Hour ($)</label><input type="number" id="adminHtOverheadHr" min="0" step="0.01" value="15" /></div>
+        <div><label for="adminHtPressesHr">Presses per Hour</label><input type="number" id="adminHtPressesHr" min="1" step="1" value="55" /></div>
+        <div><label for="adminHtMiscPerGarment">Misc Cost per Garment ($)</label><input type="number" id="adminHtMiscPerGarment" min="0" step="0.01" value="0.08" /></div>
+      </div>
+
+      <div class="section-title">Dye Sublimation</div>
+      <div class="grid">
+        <div><label for="adminSubMinRetail">Minimum Retail per Garment ($)</label><input type="number" id="adminSubMinRetail" min="0" step="0.01" value="12" /></div>
+        <div><label for="adminSubSpoilage">Spoilage (%)</label><input type="number" id="adminSubSpoilage" min="0" step="0.1" value="2" /></div>
+        <div><label for="adminSubLaborHr">Labor per Hour ($)</label><input type="number" id="adminSubLaborHr" min="0" step="0.01" value="15" /></div>
+        <div><label for="adminSubOverheadHr">Overhead per Hour ($)</label><input type="number" id="adminSubOverheadHr" min="0" step="0.01" value="20" /></div>
+        <div><label for="adminSubPrintsHr">Prints per Hour</label><input type="number" id="adminSubPrintsHr" min="1" step="1" value="45" /></div>
+        <div><label for="adminSubInkSmall">Ink/Paper per Small Location ($)</label><input type="number" id="adminSubInkSmall" min="0" step="0.01" value="0.50" /></div>
+        <div><label for="adminSubInkMedium">Ink/Paper per Medium Location ($)</label><input type="number" id="adminSubInkMedium" min="0" step="0.01" value="0.75" /></div>
+        <div><label for="adminSubInkLarge">Ink/Paper per Large Location ($)</label><input type="number" id="adminSubInkLarge" min="0" step="0.01" value="1.10" /></div>
+      </div>
+
+      <div class="section-title">Material Surcharges (per Garment, $)</div>
+      <div class="grid">
+        <div><label for="adminMatCotton">Cotton</label><input type="number" id="adminMatCotton" min="0" step="0.01" value="0" /></div>
+        <div><label for="adminMatPoly">Polyester</label><input type="number" id="adminMatPoly" min="0" step="0.01" value="0.35" /></div>
+        <div><label for="adminMatNylon">Nylon</label><input type="number" id="adminMatNylon" min="0" step="0.01" value="0.45" /></div>
+        <div><label for="adminMatPerformance">Performance / Wicking</label><input type="number" id="adminMatPerformance" min="0" step="0.01" value="0.20" /></div>
+      </div>
+
+      <div class="section-title">Rush Fees</div>
+      <div class="grid">
+        <div><label for="adminRush72">72-Hour Rush (%)</label><input type="number" id="adminRush72" min="0" step="1" value="10" /></div>
+        <div><label for="adminRush48">48-Hour Rush (%)</label><input type="number" id="adminRush48" min="0" step="1" value="20" /></div>
+        <div><label for="adminRush24">24-Hour Rush (%)</label><input type="number" id="adminRush24" min="0" step="1" value="40" /></div>
+      </div>
+    </details>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="screenTab">Screen Printing</button>
+      <button class="tab-btn" data-tab="embroideryTab">Embroidery</button>
+      <button class="tab-btn" data-tab="comboTab">Screen + Embroidery Combo</button>
+      <button class="tab-btn" data-tab="transferTab">Heat Transfers</button>
+      <button class="tab-btn" data-tab="sublimationTab">Dye Sublimation</button>
+    </div>
+
+    <div id="error" class="error"></div>
+
+    <!-- SCREEN -->
+    <div id="screenTab" class="tab-content active">
+      <div class="section-title">Screen Printing Job Details</div>
+      <div class="grid">
+        <div><label for="spQty">Shirt Quantity</label><input type="number" id="spQty" min="1" step="1" value="40" /></div>
+        <div><label for="spApparelPrice">Apparel Cost per Shirt ($)</label><input type="number" id="spApparelPrice" min="0" step="0.01" value="6.68" /></div>
+        <div><label for="spColors">Number of Colors</label><input type="number" id="spColors" min="1" max="8" step="1" value="2" /></div>
+        <div><label for="spScreens">Number of Screens</label><input type="number" id="spScreens" min="1" max="8" step="1" value="2" /></div>
+        <div>
+          <label for="spMaterial">Garment Material</label>
+          <select id="spMaterial">
+            <option value="cotton">Cotton</option>
+            <option value="poly">Polyester</option>
+            <option value="nylon">Nylon</option>
+            <option value="performance">Performance / Wicking</option>
+          </select>
+        </div>
+        <div>
+          <label for="spRush">Rush Level</label>
+          <select id="spRush">
+            <option value="none">Standard</option>
+            <option value="72">72-hour</option>
+            <option value="48">48-hour</option>
+            <option value="24">24-hour</option>
+          </select>
+        </div>
+        <div>
+          <label for="spUnderbase">Underbase Required?</label>
+          <select id="spUnderbase">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        <div>
+          <label for="spEsa">Enhanced Service Accommodation</label>
+          <select id="spEsa">
+            <option value="no">No</option>
+            <option value="yes">Yes (requires management approval)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Specialty Print Locations (Pallet Changes)</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="spPocket" /><label for="spPocket" style="margin:0;">Pocket print on pocket tee</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="spSleeve" /><label for="spSleeve" style="margin:0;">Sleeve print</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="spYouth" /><label for="spYouth" style="margin:0;">Youth garment sizes (youth pallets)</label></div>
+      </div>
+
+      <div class="button-row">
+        <button type="button" class="primary" onclick="handleScreenPrint()">Calculate Screen Printing</button>
+      </div>
+
+      <div class="results" id="spResults" style="display:none;">
+        <h2>Screen Printing Pricing</h2>
+        <div class="result-row highlight"><span>Final retail price per shirt</span><span id="spOutFinalPerShirt"></span></div>
+        <div class="quote-row">
+          <span id="spQuoteText"></span>
+          <button type="button" class="secondary" onclick="copyQuote('spQuoteText')">Copy quote line</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EMBROIDERY -->
+    <div id="embroideryTab" class="tab-content">
+      <div class="section-title">Embroidery Job Details</div>
+      <div class="grid">
+        <div><label for="embQty">Number of Garments</label><input type="number" id="embQty" min="1" step="1" value="1" /></div>
+        <div><label for="embGarmentCost">Garment Cost per Piece ($)</label><input type="number" id="embGarmentCost" min="0" step="0.01" value="21.58" /></div>
+        <div><label for="embStitchCount">Estimated Stitch Count</label><input type="number" id="embStitchCount" min="1" step="100" value="8000" /></div>
+        <div><label for="embDigitizingFee">Digitizing Fee (per job, $)</label><input type="number" id="embDigitizingFee" min="0" step="0.01" value="0" /></div>
+        <div>
+          <label for="embType">Garment Type (Difficulty)</label>
+          <select id="embType">
+            <option value="shirt">Shirt / Polo</option>
+            <option value="sweater">Hoodie / Sweater</option>
+            <option value="hat">Hat</option>
+            <option value="beanie">Beanie</option>
+          </select>
+        </div>
+        <div>
+          <label for="embRush">Rush Level</label>
+          <select id="embRush">
+            <option value="none">Standard</option>
+            <option value="72">72-hour</option>
+            <option value="48">48-hour</option>
+            <option value="24">24-hour</option>
+          </select>
+        </div>
+        <div>
+          <label for="embEsa">Enhanced Service Accommodation</label>
+          <select id="embEsa">
+            <option value="no">No</option>
+            <option value="yes">Yes (requires management approval)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="embRepeatOrder" />
+        <label for="embRepeatOrder" style="margin:0;font-weight:600;">Repeat order (no digitizing this time)</label>
+      </div>
+
+      <div class="button-row">
+        <button type="button" class="primary" onclick="handleEmbroidery()">Calculate Embroidery</button>
+      </div>
+
+      <div class="results" id="embResults" style="display:none;">
+        <h2>Embroidery Pricing</h2>
+        <div class="result-row highlight"><span>Final retail price per garment</span><span id="embOutFinalPerGarment"></span></div>
+        <div class="quote-row">
+          <span id="embQuoteText"></span>
+          <button type="button" class="secondary" onclick="copyQuote('embQuoteText')">Copy quote line</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMBO -->
+    <div id="comboTab" class="tab-content">
+      <div class="section-title">Screen + Embroidery Combo (Same Garment)</div>
+      <div class="grid">
+        <div><label for="comboQty">Shirt Quantity</label><input type="number" id="comboQty" min="1" step="1" value="40" /></div>
+        <div><label for="comboApparelPrice">Apparel Cost per Shirt ($)</label><input type="number" id="comboApparelPrice" min="0" step="0.01" value="8.00" /></div>
+        <div><label for="comboSpColors">Screen Print Colors</label><input type="number" id="comboSpColors" min="1" max="8" step="1" value="2" /></div>
+        <div><label for="comboSpScreens">Screen Print Screens</label><input type="number" id="comboSpScreens" min="1" max="8" step="1" value="2" /></div>
+        <div><label for="comboEmbStitchCount">Embroidery Stitch Count</label><input type="number" id="comboEmbStitchCount" min="1" step="100" value="8000" /></div>
+        <div><label for="comboEmbDigitizing">Embroidery Digitizing Fee (job)</label><input type="number" id="comboEmbDigitizing" min="0" step="0.01" value="0" /></div>
+        <div>
+          <label for="comboEmbType">Embroidery Garment Type (Difficulty)</label>
+          <select id="comboEmbType">
+            <option value="shirt">Shirt / Polo</option>
+            <option value="sweater">Hoodie / Sweater</option>
+            <option value="hat">Hat</option>
+            <option value="beanie">Beanie</option>
+          </select>
+        </div>
+        <div>
+          <label for="comboMaterial">Garment Material (for screen)</label>
+          <select id="comboMaterial">
+            <option value="cotton">Cotton</option>
+            <option value="poly">Polyester</option>
+            <option value="nylon">Nylon</option>
+            <option value="performance">Performance / Wicking</option>
+          </select>
+        </div>
+        <div>
+          <label for="comboRush">Rush Level</label>
+          <select id="comboRush">
+            <option value="none">Standard</option>
+            <option value="72">72-hour</option>
+            <option value="48">48-hour</option>
+            <option value="24">24-hour</option>
+          </select>
+        </div>
+        <div>
+          <label for="comboUnderbase">Underbase Required?</label>
+          <select id="comboUnderbase">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+        <div>
+          <label for="comboEsa">Enhanced Service Accommodation</label>
+          <select id="comboEsa">
+            <option value="no">No</option>
+            <option value="yes">Yes (requires management approval)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section-title">Specialty Print Locations (Pallet Changes)</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="comboPocket" /><label for="comboPocket" style="margin:0;">Pocket print on pocket tee</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="comboSleeve" /><label for="comboSleeve" style="margin:0;">Sleeve print</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="comboYouth" /><label for="comboYouth" style="margin:0;">Youth garment sizes (youth pallets)</label></div>
+      </div>
+
+      <div class="checkbox-row">
+        <input type="checkbox" id="comboEmbRepeat" />
+        <label for="comboEmbRepeat" style="margin:0;font-weight:600;">Repeat embroidery (no digitizing this time)</label>
+      </div>
+
+      <div class="button-row">
+        <button type="button" class="primary" onclick="handleCombo()">Calculate Combo</button>
+      </div>
+
+      <div class="results" id="comboResults" style="display:none;">
+        <h2>Screen + Embroidery Combo Pricing</h2>
+        <div class="result-row highlight"><span>Final retail price per shirt</span><span id="comboOutFinalPerShirt"></span></div>
+        <div class="quote-row">
+          <span id="comboQuoteText"></span>
+          <button type="button" class="secondary" onclick="copyQuote('comboQuoteText')">Copy quote line</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSFERS -->
+    <div id="transferTab" class="tab-content">
+      <div class="section-title">Heat Transfer Job Details</div>
+      <div class="grid">
+        <div><label for="htQty">Number of Garments</label><input type="number" id="htQty" min="1" step="1" value="20" /></div>
+        <div><label for="htGarmentCost">Garment Cost per Piece ($)</label><input type="number" id="htGarmentCost" min="0" step="0.01" value="6.00" /></div>
+        <div><label for="htTransferCost">Transfer Cost per Piece ($)</label><input type="number" id="htTransferCost" min="0" step="0.01" value="3.50" /></div>
+        <div>
+          <label for="htRush">Rush Level</label>
+          <select id="htRush">
+            <option value="none">Standard</option>
+            <option value="72">72-hour</option>
+            <option value="48">48-hour</option>
+            <option value="24">24-hour</option>
+          </select>
+        </div>
+        <div>
+          <label for="htEsa">Enhanced Service Accommodation</label>
+          <select id="htEsa">
+            <option value="no">No</option>
+            <option value="yes">Yes (requires management approval)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button type="button" class="primary" onclick="handleHeatTransfer()">Calculate Heat Transfers</button>
+      </div>
+
+      <div class="results" id="htResults" style="display:none;">
+        <h2>Heat Transfer Pricing</h2>
+        <div class="result-row highlight"><span>Final retail price per garment</span><span id="htOutFinalPerGarment"></span></div>
+        <div class="quote-row">
+          <span id="htQuoteText"></span>
+          <button type="button" class="secondary" onclick="copyQuote('htQuoteText')">Copy quote line</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBLIMATION -->
+    <div id="sublimationTab" class="tab-content">
+      <div class="section-title">Dye Sublimation Job Details (Polyester garments)</div>
+      <div class="grid">
+        <div><label for="subQty">Number of Garments</label><input type="number" id="subQty" min="1" step="1" value="20" /></div>
+        <div><label for="subGarmentCost">Garment Cost per Piece ($)</label><input type="number" id="subGarmentCost" min="0" step="0.01" value="7.00" /></div>
+
+        <div>
+          <label for="subLoc1Type">Location 1</label>
+          <select id="subLoc1Type">
+            <option value="none">None</option>
+            <option value="leftChest">Left chest</option>
+            <option value="rightChest">Right chest</option>
+            <option value="fullFront">Full front</option>
+            <option value="fullBack">Full back</option>
+            <option value="upperBack">Upper back</option>
+            <option value="sleeve">Sleeve</option>
+            <option value="insideNeck">Inside neck / tag</option>
+            <option value="hangTag">Hang tag</option>
+            <option value="leg">Leg</option>
+            <option value="allOverFront">All-over front</option>
+            <option value="allOverBack">All-over back</option>
+          </select>
+        </div>
+        <div><label for="subLoc1Count">Qty of this location per garment</label><input type="number" id="subLoc1Count" min="0" step="1" value="1" /></div>
+
+        <div>
+          <label for="subLoc2Type">Location 2</label>
+          <select id="subLoc2Type">
+            <option value="none">None</option>
+            <option value="leftChest">Left chest</option>
+            <option value="rightChest">Right chest</option>
+            <option value="fullFront">Full front</option>
+            <option value="fullBack">Full back</option>
+            <option value="upperBack">Upper back</option>
+            <option value="sleeve">Sleeve</option>
+            <option value="insideNeck">Inside neck / tag</option>
+            <option value="hangTag">Hang tag</option>
+            <option value="leg">Leg</option>
+            <option value="allOverFront">All-over front</option>
+            <option value="allOverBack">All-over back</option>
+          </select>
+        </div>
+        <div><label for="subLoc2Count">Qty of this location per garment</label><input type="number" id="subLoc2Count" min="0" step="1" value="0" /></div>
+
+        <div>
+          <label for="subLoc3Type">Location 3</label>
+          <select id="subLoc3Type">
+            <option value="none">None</option>
+            <option value="leftChest">Left chest</option>
+            <option value="rightChest">Right chest</option>
+            <option value="fullFront">Full front</option>
+            <option value="fullBack">Full back</option>
+            <option value="upperBack">Upper back</option>
+            <option value="sleeve">Sleeve</option>
+            <option value="insideNeck">Inside neck / tag</option>
+            <option value="hangTag">Hang tag</option>
+            <option value="leg">Leg</option>
+            <option value="allOverFront">All-over front</option>
+            <option value="allOverBack">All-over back</option>
+          </select>
+        </div>
+        <div><label for="subLoc3Count">Qty of this location per garment</label><input type="number" id="subLoc3Count" min="0" step="1" value="0" /></div>
+
+        <div>
+          <label for="subRush">Rush Level</label>
+          <select id="subRush">
+            <option value="none">Standard</option>
+            <option value="72">72-hour</option>
+            <option value="48">48-hour</option>
+            <option value="24">24-hour</option>
+          </select>
+        </div>
+        <div>
+          <label for="subEsa">Enhanced Service Accommodation</label>
+          <select id="subEsa">
+            <option value="no">No</option>
+            <option value="yes">Yes (requires management approval)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button type="button" class="primary" onclick="handleSublimation()">Calculate Sublimation</button>
+      </div>
+
+      <div class="results" id="subResults" style="display:none;">
+        <h2>Dye Sublimation Pricing</h2>
+        <div class="result-row highlight"><span>Final retail price per garment</span><span id="subOutFinalPerGarment"></span></div>
+        <div class="quote-row">
+          <span id="subQuoteText"></span>
+          <button type="button" class="secondary" onclick="copyQuote('subQuoteText')">Copy quote line</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- AUTH / UI ----------
+    const ADMIN_PASSWORD = "J@ck$on!12";
+
+    function unlockAdmin() {
+      const input = document.getElementById("adminPassword").value;
+      const errorEl = document.getElementById("adminLoginError");
+      if (input === ADMIN_PASSWORD) {
+        document.getElementById("adminPanel").style.display = "block";
+        document.getElementById("adminLogin").style.display = "none";
+        errorEl.textContent = "";
+      } else {
+        errorEl.textContent = "Incorrect password.";
+      }
+    }
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const target = btn.getAttribute("data-tab");
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(target).classList.add("active");
+        clearError();
+      });
+    });
+
+    function money(v) { return "$" + (isFinite(v) ? v : 0).toFixed(2); }
+    function showError(msg) { const el = document.getElementById("error"); el.textContent = msg; el.style.display = "block"; }
+    function clearError() { const el = document.getElementById("error"); el.textContent = ""; el.style.display = "none"; }
+
+    function copyQuote(id) {
+      const el = document.getElementById(id);
+      const text = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText) : "";
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => alert("Copied.")).catch(() => {});
+      }
+    }
+
+    function num(id, fallback = 0) {
+      const el = document.getElementById(id);
+      const v = el ? parseFloat(el.value) : NaN;
+      return isFinite(v) ? v : fallback;
+    }
+    function sel(id, fallback = "") {
+      const el = document.getElementById(id);
+      return el ? el.value : fallback;
+    }
+    function chk(id) {
+      const el = document.getElementById(id);
+      return !!(el && el.checked);
+    }
+
+    // ---------- GLOBAL SETTINGS ----------
+    function decorationMargin() { return num("adminProfitMargin", 40) / 100; }
+    function garmentMarginFactor() { return 1 + (num("adminGarmentMargin", 5) / 100); }
+    function esaAmount() { return num("adminEsaAmount", 0.5); }
+
+    function rushMult(level) {
+      if (level === "72") return 1 + num("adminRush72", 10) / 100;
+      if (level === "48") return 1 + num("adminRush48", 20) / 100;
+      if (level === "24") return 1 + num("adminRush24", 40) / 100;
+      return 1;
+    }
+
+    function materialSurcharge(key) {
+      if (key === "cotton") return num("adminMatCotton", 0);
+      if (key === "poly") return num("adminMatPoly", 0.35);
+      if (key === "nylon") return num("adminMatNylon", 0.45);
+      if (key === "performance") return num("adminMatPerformance", 0.20);
+      return 0;
+    }
+
+    // ---------- EMBROIDERY (10% reduced matrix) ----------
+    const EMB_MATRIX = {
+      upTo6000:     [6.98, 5.85, 4.73, 3.60, 2.93, 2.25],
+      "6001to8000": [7.88, 6.75, 5.62, 4.50, 3.83, 3.15],
+      "8001to10000":[8.78, 7.65, 6.53, 5.40, 4.73, 4.05],
+      "10001to12000":[9.68, 8.55, 7.42, 6.30, 5.62, 4.95],
+      "12001to15000":[10.58, 9.45, 8.33, 7.20, 6.53, 5.85],
+      "15001to20000":[11.70,10.58, 9.45, 8.33, 7.65, 6.98],
+      "20001plus":  [13.50,12.38,11.25,10.12, 9.45, 8.78]
+    };
+    function embCol(qty){ if(qty<=10) return 0; if(qty<=25) return 1; if(qty<=50) return 2; if(qty<=100) return 3; if(qty<=300) return 4; return 5; }
+    function embRow(st){ if(st<=6000) return "upTo6000"; if(st<=8000) return "6001to8000"; if(st<=10000) return "8001to10000"; if(st<=12000) return "10001to12000"; if(st<=15000) return "12001to15000"; if(st<=20000) return "15001to20000"; return "20001plus"; }
+    function stitchPrice(stitches, qty){ return EMB_MATRIX[embRow(stitches)][embCol(qty)]; }
+    function embDiff(key){
+      if(key==="shirt") return num("adminEmbDiffShirt", 0);
+      if(key==="sweater") return num("adminEmbDiffSweater", 0);
+      if(key==="hat") return num("adminEmbDiffHat", 0.10);
+      if(key==="beanie") return num("adminEmbDiffBeanie", 0.05);
+      return 0;
+    }
+
+    // ---------- CORE COSTS ----------
+    function spoilFactor(id, defPct){ return 1 + (num(id, defPct) / 100); }
+
+    function screenCosts({qty, apparelCost, colors, screens, materialKey, pocket, sleeve, youth, underbase}) {
+      const minQty = num("adminScreenMinQty", 12);
+      if (qty < minQty) throw new Error(`Screen printing minimum is ${minQty} pieces.`);
+      if (colors <= 0 || screens <= 0) throw new Error("Colors and screens must be > 0.");
+
+      const spoil = spoilFactor("adminSpSpoilage", 2);
+
+      const pressSetup = num("adminSpPressSetup", 20);
+      const screenFee = num("adminSpScreenFee", 18);
+      const screenSetupLabor = num("adminSpScreenSetupLabor", 2);
+
+      const baseInk = num("adminSpBaseInk", 0.15);
+      const colorInk = num("adminSpColorInk", 0.10);
+
+      const baseLabor = num("adminSpBaseLabor", 0.15);
+      const perColorLabor = num("adminSpPerColorLabor", 0.06);
+      const flashLabor = num("adminSpFlashLabor", 0.05);
+
+      const operatorHr = num("adminSpOperatorHr", 27);
+      const overheadHr = num("adminSpOverheadHr", 35);
+      const printsHr = num("adminSpPrintsHr", 325);
+
+      const pocketFee = pocket ? num("adminSpPocketPalletFee", 10) : 0;
+      const sleeveFee = sleeve ? num("adminSpSleevePalletFee", 10) : 0;
+      const youthFee  = youth  ? num("adminSpYouthPalletFee", 10)  : 0;
+
+      const specialtyCount = (pocket?1:0)+(sleeve?1:0)+(youth?1:0);
+      let multiExtra = 0;
+      if (specialtyCount >= 3) multiExtra = num("adminSpMulti3Fee", 20);
+      else if (specialtyCount === 2) multiExtra = num("adminSpMulti2Fee", 10);
+
+      const ubCost = underbase ? num("adminSpUnderbasePerShirt", 0.08) : 0;
+
+      const setupTotal =
+        pressSetup +
+        (screenFee * screens) +
+        (screenSetupLabor * screens) +
+        pocketFee + sleeveFee + youthFee + multiExtra;
+
+      const setupPer = setupTotal / qty;
+
+      const flashes = Math.max(colors - 1, 0);
+      const inkPer = baseInk + (colorInk * colors);
+      const laborPer = baseLabor + (perColorLabor * colors) + (flashLabor * flashes);
+      const overheadPer = (operatorHr + overheadHr) / printsHr;
+      const matPer = materialSurcharge(materialKey);
+
+      const decoRaw = inkPer + laborPer + overheadPer + matPer + ubCost + setupPer;
+
+      return {
+        garmentCogsPer: apparelCost * spoil,
+        decoCogsPer: decoRaw * spoil
+      };
+    }
+
+    function embroideryCosts({qty, garmentCost, stitches, digitizingFee, repeatOrder, typeKey}) {
+      if (qty <= 0) throw new Error("Embroidery quantity must be > 0.");
+      if (stitches <= 0) throw new Error("Stitch count must be > 0.");
+
+      const spoil = spoilFactor("adminEmbSpoilage", 2);
+      const effDigitizing = repeatOrder ? 0 : digitizingFee;
+
+      const base = stitchPrice(stitches, qty);
+      const factor = 1 + embDiff(typeKey);
+      const deco = (base * factor) + (effDigitizing / qty);
+
+      const laborHr = num("adminEmbLaborHr", 15);
+      const overheadHr = num("adminEmbOverheadHr", 20);
+      const assumedGph = 40;
+      const laborOverheadPer = (laborHr + overheadHr) / assumedGph;
+
+      return {
+        garmentCogsPer: garmentCost * spoil,
+        decoCogsPer: (deco + laborOverheadPer) * spoil
+      };
+    }
+
+    function transferCosts({qty, garmentCost, transferCost}) {
+      if (qty <= 0) throw new Error("Transfer quantity must be > 0.");
+      const spoil = spoilFactor("adminHtSpoilage", 1.5);
+
+      const laborHr = num("adminHtLaborHr", 16);
+      const overheadHr = num("adminHtOverheadHr", 15);
+      const pressesHr = num("adminHtPressesHr", 55);
+      const misc = num("adminHtMiscPerGarment", 0.08);
+
+      const laborOverheadPer = (laborHr + overheadHr) / pressesHr;
+
+      return {
+        garmentCogsPer: garmentCost * spoil,
+        decoCogsPer: (transferCost + laborOverheadPer + misc) * spoil
+      };
+    }
+
+    function subCosts({qty, garmentCost, inkPaperPer}) {
+      if (qty <= 0) throw new Error("Sublimation quantity must be > 0.");
+      const spoil = spoilFactor("adminSubSpoilage", 2);
+
+      const laborHr = num("adminSubLaborHr", 15);
+      const overheadHr = num("adminSubOverheadHr", 20);
+      const printsHr = num("adminSubPrintsHr", 45);
+
+      const laborOverheadPer = (laborHr + overheadHr) / printsHr;
+      const mat = materialSurcharge("poly");
+
+      return {
+        garmentCogsPer: garmentCost * spoil,
+        decoCogsPer: (inkPaperPer + laborOverheadPer + mat) * spoil
+      };
+    }
+
+    // ---------- LEGACY BOOST HELPERS ----------
+    function legacyOn() { return sel("adminSpLegacyOn","on") === "on"; }
+    function legacyMaxQty() { return num("adminSpLegacyMaxQty", 24); }
+    function legacyMinDecoRetail() { return num("adminSpLegacyMinDecoRetail", 7.25); }
+
+    // Decoration retail = decoCogs / (1 - margin) with optional floor at low qty
+    function decoRetailWithLegacyFloor(decoCogsPer, qty) {
+      const retail = decoCogsPer / (1 - decorationMargin());
+      if (legacyOn() && qty <= legacyMaxQty()) return Math.max(retail, legacyMinDecoRetail());
+      return retail;
+    }
+
+    // ---------- SUB LOCATION COST ----------
+    function subInkRate(type) {
+      const s = num("adminSubInkSmall", 0.50);
+      const m = num("adminSubInkMedium", 0.75);
+      const l = num("adminSubInkLarge", 1.10);
+      switch(type){
+        case "leftChest":
+        case "rightChest":
+        case "sleeve":
+        case "insideNeck":
+        case "hangTag":
+          return s;
+        case "upperBack":
+        case "leg":
+          return m;
+        case "fullFront":
+        case "fullBack":
+        case "allOverFront":
+        case "allOverBack":
+          return l;
+        default:
+          return 0;
+      }
+    }
+    function subLocLabel(type) {
+      const map = {
+        none:"None", leftChest:"Left chest", rightChest:"Right chest", fullFront:"Full front",
+        fullBack:"Full back", upperBack:"Upper back", sleeve:"Sleeve", insideNeck:"Inside neck / tag",
+        hangTag:"Hang tag", leg:"Leg", allOverFront:"All-over front", allOverBack:"All-over back"
+      };
+      return map[type] || type;
+    }
+
+    // ---------- HANDLERS ----------
+    function handleScreenPrint() {
+      clearError();
+
+      const qty = num("spQty");
+      const apparel = num("spApparelPrice");
+      const colors = num("spColors");
+      const screens = num("spScreens");
+      const material = sel("spMaterial","cotton");
+      const rush = sel("spRush","none");
+      const esa = sel("spEsa","no") === "yes";
+      const underbase = sel("spUnderbase","no") === "yes";
+
+      const pocket = chk("spPocket");
+      const sleeve = chk("spSleeve");
+      const youth  = chk("spYouth");
+
+      try {
+        const c = screenCosts({qty, apparelCost:apparel, colors, screens, materialKey:material, pocket, sleeve, youth, underbase});
+
+        const garmentRetail = c.garmentCogsPer * garmentMarginFactor();
+        const decoRetail = decoRetailWithLegacyFloor(c.decoCogsPer, qty);
+
+        let finalPer = (garmentRetail + decoRetail) * rushMult(rush);
+        if (esa) finalPer += esaAmount();
+
+        const total = finalPer * qty;
+
+        document.getElementById("spOutFinalPerShirt").textContent = money(finalPer);
+
+        const matLabel = {cotton:"Cotton", poly:"Polyester", nylon:"Nylon", performance:"Performance"}[material] || material;
+        const rushLabel = rush === "none" ? "Standard" : (rush + "h rush");
+
+        const spParts = [];
+        if (pocket) spParts.push("pocket");
+        if (sleeve) spParts.push("sleeve");
+        if (youth) spParts.push("youth");
+
+        const extra = (spParts.length ? " · Specialty: " + spParts.join(", ") : "") + (underbase ? " · Underbase" : "");
+        document.getElementById("spQuoteText").textContent =
+          `${qty} pcs · Screen print · ${colors}-color · ${matLabel} · ${rushLabel}${extra} · ${money(finalPer)} ea · Total ${money(total)}`;
+
+        document.getElementById("spResults").style.display = "block";
+      } catch (e) {
+        showError(e.message);
+        document.getElementById("spResults").style.display = "none";
+      }
+    }
+
+    function handleEmbroidery() {
+      clearError();
+
+      const qty = num("embQty");
+      const garment = num("embGarmentCost");
+      const stitches = num("embStitchCount");
+      const digitizing = num("embDigitizingFee", 0);
+      const typeKey = sel("embType","shirt");
+      const rush = sel("embRush","none");
+      const esa = sel("embEsa","no") === "yes";
+      const repeat = chk("embRepeatOrder");
+
+      try {
+        const c = embroideryCosts({qty, garmentCost:garment, stitches, digitizingFee:digitizing, repeatOrder:repeat, typeKey});
+
+        const garmentRetail = c.garmentCogsPer * garmentMarginFactor();
+        const decoRetail = c.decoCogsPer / (1 - decorationMargin());
+
+        let finalPer = (garmentRetail + decoRetail) * rushMult(rush);
+        if (esa) finalPer += esaAmount();
+
+        const minRetail = num("adminEmbMinRetail", 10);
+        if (qty <= 12 && finalPer < minRetail) finalPer = minRetail;
+
+        const total = finalPer * qty;
+
+        document.getElementById("embOutFinalPerGarment").textContent = money(finalPer);
+
+        const typeLabel = {shirt:"Shirt/Polo", sweater:"Hoodie/Sweater", hat:"Hat", beanie:"Beanie"}[typeKey] || typeKey;
+        const rushLabel = rush === "none" ? "Standard" : (rush + "h rush");
+
+        document.getElementById("embQuoteText").textContent =
+          `${qty} pcs · Embroidery · ${stitches} stitches · ${typeLabel} · ${rushLabel} · ${money(finalPer)} ea · Total ${money(total)}`;
+
+        document.getElementById("embResults").style.display = "block";
+      } catch (e) {
+        showError(e.message);
+        document.getElementById("embResults").style.display = "none";
+      }
+    }
+
+    function handleCombo() {
+      clearError();
+
+      const qty = num("comboQty");
+      const apparel = num("comboApparelPrice");
+      const colors = num("comboSpColors");
+      const screens = num("comboSpScreens");
+      const stitches = num("comboEmbStitchCount");
+      const digitizing = num("comboEmbDigitizing", 0);
+      const typeKey = sel("comboEmbType","shirt");
+      const material = sel("comboMaterial","cotton");
+      const rush = sel("comboRush","none");
+      const esa = sel("comboEsa","no") === "yes";
+      const repeat = chk("comboEmbRepeat");
+      const underbase = sel("comboUnderbase","no") === "yes";
+
+      const pocket = chk("comboPocket");
+      const sleeve = chk("comboSleeve");
+      const youth  = chk("comboYouth");
+
+      try {
+        const sp = screenCosts({qty, apparelCost:apparel, colors, screens, materialKey:material, pocket, sleeve, youth, underbase});
+        const em = embroideryCosts({qty, garmentCost:0, stitches, digitizingFee:digitizing, repeatOrder:repeat, typeKey});
+
+        const garmentRetail = sp.garmentCogsPer * garmentMarginFactor();
+
+        // Combine decoration COGS (screen + embroidery). Then apply margin + optional low-qty floor.
+        const combinedDecoCogs = sp.decoCogsPer + em.decoCogsPer;
+        const decoRetail = decoRetailWithLegacyFloor(combinedDecoCogs, qty);
+
+        let finalPer = (garmentRetail + decoRetail) * rushMult(rush);
+        if (esa) finalPer += esaAmount();
+
+        const total = finalPer * qty;
+
+        document.getElementById("comboOutFinalPerShirt").textContent = money(finalPer);
+
+        const matLabel = {cotton:"Cotton", poly:"Polyester", nylon:"Nylon", performance:"Performance"}[material] || material;
+        const typeLabel = {shirt:"Shirt/Polo", sweater:"Hoodie/Sweater", hat:"Hat", beanie:"Beanie"}[typeKey] || typeKey;
+        const rushLabel = rush === "none" ? "Standard" : (rush + "h rush");
+
+        const spParts = [];
+        if (pocket) spParts.push("pocket");
+        if (sleeve) spParts.push("sleeve");
+        if (youth) spParts.push("youth");
+
+        const extra = (spParts.length ? " · Specialty: " + spParts.join(", ") : "") + (underbase ? " · Underbase" : "");
+
+        document.getElementById("comboQuoteText").textContent =
+          `${qty} pcs · Screen + Embroidery · ${colors}-color print, ${stitches} stitches · ${matLabel} (${typeLabel}) · ${rushLabel}${extra} · ${money(finalPer)} ea · Total ${money(total)}`;
+
+        document.getElementById("comboResults").style.display = "block";
+      } catch (e) {
+        showError(e.message);
+        document.getElementById("comboResults").style.display = "none";
+      }
+    }
+
+    function handleHeatTransfer() {
+      clearError();
+
+      const qty = num("htQty");
+      const garment = num("htGarmentCost");
+      const transfer = num("htTransferCost");
+      const rush = sel("htRush","none");
+      const esa = sel("htEsa","no") === "yes";
+
+      try {
+        const c = transferCosts({qty, garmentCost:garment, transferCost:transfer});
+
+        const garmentRetail = c.garmentCogsPer * garmentMarginFactor();
+        const decoRetail = c.decoCogsPer / (1 - decorationMargin());
+
+        let finalPer = (garmentRetail + decoRetail) * rushMult(rush);
+        if (esa) finalPer += esaAmount();
+
+        const minRetail = num("adminHtMinRetail", 9);
+        if (qty <= 12 && finalPer < minRetail) finalPer = minRetail;
+
+        const total = finalPer * qty;
+
+        document.getElementById("htOutFinalPerGarment").textContent = money(finalPer);
+
+        const rushLabel = rush === "none" ? "Standard" : (rush + "h rush");
+        document.getElementById("htQuoteText").textContent =
+          `${qty} pcs · Heat transfer · ${rushLabel} · ${money(finalPer)} ea · Total ${money(total)}`;
+
+        document.getElementById("htResults").style.display = "block";
+      } catch (e) {
+        showError(e.message);
+        document.getElementById("htResults").style.display = "none";
+      }
+    }
+
+    function handleSublimation() {
+      clearError();
+
+      const qty = num("subQty");
+      const garment = num("subGarmentCost");
+      const rush = sel("subRush","none");
+      const esa = sel("subEsa","no") === "yes";
+
+      const t1 = sel("subLoc1Type","none"); const c1 = num("subLoc1Count", 0);
+      const t2 = sel("subLoc2Type","none"); const c2 = num("subLoc2Count", 0);
+      const t3 = sel("subLoc3Type","none"); const c3 = num("subLoc3Count", 0);
+
+      try {
+        const inkPaperPer =
+          (c1 * subInkRate(t1)) +
+          (c2 * subInkRate(t2)) +
+          (c3 * subInkRate(t3));
+
+        const c = subCosts({qty, garmentCost:garment, inkPaperPer});
+
+        const garmentRetail = c.garmentCogsPer * garmentMarginFactor();
+        const decoRetail = c.decoCogsPer / (1 - decorationMargin());
+
+        let finalPer = (garmentRetail + decoRetail) * rushMult(rush);
+        if (esa) finalPer += esaAmount();
+
+        const minRetail = num("adminSubMinRetail", 12);
+        if (qty <= 12 && finalPer < minRetail) finalPer = minRetail;
+
+        const total = finalPer * qty;
+
+        document.getElementById("subOutFinalPerGarment").textContent = money(finalPer);
+
+        const locParts = [];
+        if (t1 !== "none" && c1 > 0) locParts.push(`${c1}× ${subLocLabel(t1)}`);
+        if (t2 !== "none" && c2 > 0) locParts.push(`${c2}× ${subLocLabel(t2)}`);
+        if (t3 !== "none" && c3 > 0) locParts.push(`${c3}× ${subLocLabel(t3)}`);
+        const locSummary = locParts.length ? locParts.join(", ") : "No locations specified";
+
+        const rushLabel = rush === "none" ? "Standard" : (rush + "h rush");
+        document.getElementById("subQuoteText").textContent =
+          `${qty} pcs · Dye sublimation (poly) · ${locSummary} · ${rushLabel} · ${money(finalPer)} ea · Total ${money(total)}`;
+
+        document.getElementById("subResults").style.display = "block";
+      } catch (e) {
+        showError(e.message);
+        document.getElementById("subResults").style.display = "none";
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", handleScreenPrint);
+  </script>
+</body>
+</html>
